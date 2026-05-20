@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meraki Music | BPM Organizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --purple: #6B2D8B;
+    --purple-light: #9B5AB8;
+    --purple-dark: #3D1250;
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --bg: #0A0A0F;
+    --surface: #13111A;
+    --surface2: #1C1826;
+    --text: #F0EAF8;
+    --text-muted: #8B7FA0;
+    --green: #1DB954;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(107,45,139,0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(201,168,76,0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+  /* HEADER */
+  header {
+    padding: 32px 20px 24px;
+    text-align: center;
+    border-bottom: 1px solid rgba(107,45,139,0.3);
+  }
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--gold-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* LOGIN SCREEN */
+  #login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid rgba(107,45,139,0.4);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .login-icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .login-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .login-card p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  .btn-spotify {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 50px;
+    padding: 16px 32px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+
+  .btn-spotify:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-spotify:active { transform: translateY(0); }
+
+  .spotify-icon { font-size: 20px; }
+
+  /* MAIN APP */
+  #app-screen { display: none; padding: 24px 0 60px; }
+
+  /* USER BAR */
+  .user-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--gold));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600;
+  }
+
+  .user-name { font-size: 14px; font-weight: 500; }
+  .user-label { font-size: 11px; color: var(--text-muted); }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-logout:hover { border-color: var(--purple-light); color: var(--text); }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(107,45,139,0.2);
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .control-group { flex: 1; min-width: 140px; }
+  .control-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  select, input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid rgba(107,45,139,0.3);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s;
+  }
+
+  select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--purple-light);
+  }
+
+  .bpm-range { display: flex; gap: 8px; align-items: center; }
+  .bpm-range span { color: var(--text-muted); font-size: 13px; }
+  .bpm-range input { flex: 1; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple), var(--purple-light));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s, transform 0.15s;
+    height: 42px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* BPM QUICK FILTERS */
+  .quick-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .filter-chip {
+    background: var(--surface2);
+    border: 1px solid rgba(107,45,139,0.3);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-chip:hover, .filter-chip.active {
+    background: rgba(107,45,139,0.3);
+    border-color: var(--purple-light);
+    color: var(--text);
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 10px 16px;
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+    border: 1px solid rgba(107,45,139,0.15);
+  }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--gold-light);
+    display: block;
+  }
+
+  .stat-label { font-size: 11px; color: var(--text-muted); }
+
+  /* TRACK LIST */
+  .tracks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .tracks-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .btn-export {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-export:hover { background: rgba(201,168,76,0.1); }
+  .btn-export:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .track-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .track-item {
+    background: var(--surface);
+    border: 1px solid rgba(107,45,139,0.15);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.15s, background 0.15s;
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .track-item:hover { border-color: rgba(107,45,139,0.4); background: var(--surface2); }
+
+  .track-album {
+    width: 44px; height: 44px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--purple-dark), var(--surface2));
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .track-album img { width: 100%; height: 100%; object-fit: cover; }
+
+  .track-info { flex: 1; min-width: 0; }
+
+  .track-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+
+  .track-artist {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .track-bpm {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--gold-light);
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 52px;
+  }
+
+  .track-bpm-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: right;
+  }
+
+  .bpm-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+
+  .bpm-slow { background: rgba(100,149,237,0.2); color: #8ab4f8; }
+  .bpm-med { background: rgba(107,45,139,0.3); color: var(--purple-light); }
+  .bpm-fast { background: rgba(201,168,76,0.2); color: var(--gold-light); }
+  .bpm-very-fast { background: rgba(220,80,80,0.2); color: #f08080; }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(107,45,139,0.3);
+    border-top-color: var(--purple-light);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* EXPORT MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid rgba(107,45,139,0.4);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 400px;
+    width: 100%;
+  }
+
+  .modal h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .modal p { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+
+  .modal input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid rgba(107,45,139,0.3);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 12px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .modal input[type="text"]:focus { outline: none; border-color: var(--purple-light); }
+
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-cancel {
+    flex: 1;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-muted);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid rgba(107,45,139,0.4);
+    color: var(--text);
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 13px;
+    transition: transform 0.3s ease;
+    z-index: 200;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ERROR */
+  .error-msg {
+    background: rgba(220,80,80,0.1);
+    border: 1px solid rgba(220,80,80,0.3);
+    color: #f08080;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-line">
+    <div class="logo-dot"></div>
+    <h1>Meraki Music</h1>
+    <div class="logo-dot"></div>
+  </div>
+  <p class="tagline">BPM Organizer for Dance</p>
+</header>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <span class="login-icon">🎵</span>
+    <h2>Welcome, Instructor</h2>
+    <p>Connect your Spotify account to browse your playlists by BPM and build the perfect class setlist.</p>
+    <div class="error-msg" id="login-error"></div>
+    <button class="btn-spotify" onclick="loginWithSpotify()">
+      <span class="spotify-icon">●</span>
+      Connect with Spotify
+    </button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-screen">
+  <div class="container">
+
+    <div class="user-bar">
+      <div class="user-info">
+        <div class="user-avatar" id="user-initials">M</div>
+        <div>
+          <div class="user-name" id="user-name">Loading...</div>
+          <div class="user-label">Spotify Connected</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Disconnect</button>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <div class="controls-row">
+        <div class="control-group" style="flex:2; min-width:180px;">
+          <label>Playlist</label>
+          <select id="playlist-select" onchange="loadPlaylistTracks()">
+            <option value="">Loading playlists...</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>BPM Range</label>
+          <div class="bpm-range">
+            <input type="number" id="bpm-min" placeholder="60" min="0" max="300" oninput="filterTracks()">
+            <span>–</span>
+            <input type="number" id="bpm-max" placeholder="220" min="0" max="300" oninput="filterTracks()">
+          </div>
+        </div>
+        <div class="control-group" style="flex:0;">
+          <label>&nbsp;</label>
+          <button class="btn-primary" onclick="loadPlaylistTracks()" id="load-btn">Load</button>
+        </div>
+      </div>
+
+      <div class="quick-filters">
+        <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; align-self:center;">Quick:</span>
+        <button class="filter-chip" onclick="setFilter(60,90,'Slow / Warm-up')">60-90 Warm-up</button>
+        <button class="filter-chip" onclick="setFilter(150,180,'Salsa Beginner')">150-180 Salsa Beg</button>
+        <button class="filter-chip" onclick="setFilter(180,210,'Salsa Intermediate')">180-210 Salsa Int</button>
+        <button class="filter-chip" onclick="setFilter(210,240,'Salsa Advanced')">210-240 Salsa Adv</button>
+        <button class="filter-chip" onclick="setFilter(0,300,'All')">All BPM</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-bar" id="stats-bar" style="display:none;">
+      <div class="stat">
+        <span class="stat-num" id="stat-total">0</span>
+        <span class="stat-label">Showing</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="stat-avg">--</span>
+        <span class="stat-label">Avg BPM</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="stat-min">--</span>
+        <span class="stat-label">Min BPM</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="stat-max">--</span>
+        <span class="stat-label">Max BPM</span>
+      </div>
+    </div>
+
+    <!-- TRACK HEADER -->
+    <div class="tracks-header" id="tracks-header" style="display:none;">
+      <h3 id="tracks-title">Tracks</h3>
+      <button class="btn-export" id="export-btn" onclick="openExportModal()" disabled>
+        + Save as Playlist
+      </button>
+    </div>
+
+    <!-- TRACK LIST -->
+    <div id="track-container">
+      <div class="empty-state">
+        <div class="big-icon">🎧</div>
+        <p>Select a playlist above to see<br>your tracks with BPM data.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal">
+    <h3>Save to Spotify</h3>
+    <p>This will create a new playlist in your Spotify account with the currently filtered tracks.</p>
+    <input type="text" id="new-playlist-name" placeholder="e.g. Salsa Class 180-210 BPM">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeExportModal()">Cancel</button>
+      <button class="btn-primary" onclick="exportPlaylist()" style="flex:1;">Create Playlist</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CLIENT_ID = 'a9608d98d4f24f6eb3773685e55a0979';
+  const REDIRECT_URI = 'https://claude.site/artifacts';
+  const SCOPES = 'user-read-private playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private';
+
+  let accessToken = null;
+  let allTracks = [];
+  let filteredTracks = [];
+  let userId = null;
+  let activeChip = null;
+
+  // ---- AUTH ----
+
+  function loginWithSpotify() {
+    const state = Math.random().toString(36).substring(2);
+    sessionStorage.setItem('spotify_state', state);
+    const params = new URLSearchParams({
+      response_type: 'token',
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      redirect_uri: REDIRECT_URI,
+      state
+    });
+    window.location.href = `https://accounts.spotify.com/authorize?${params}`;
+  }
+
+  function handleCallback() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const token = params.get('access_token');
+    const state = params.get('state');
+    const error = params.get('error');
+
+    if (error) {
+      showLoginError('Spotify login was cancelled or failed. Please try again.');
+      return;
+    }
+
+    if (token) {
+      const savedState = sessionStorage.getItem('spotify_state');
+      accessToken = token;
+      sessionStorage.setItem('spotify_token', token);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      showApp();
+    }
+  }
+
+  function checkExistingToken() {
+    const token = sessionStorage.getItem('spotify_token');
+    if (token) {
+      accessToken = token;
+      showApp();
+      return true;
+    }
+    return false;
+  }
+
+  function logout() {
+    accessToken = null;
+    sessionStorage.removeItem('spotify_token');
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+
+  function showLoginError(msg) {
+    const el = document.getElementById('login-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // ---- API ----
+
+  async function spotifyFetch(endpoint) {
+    const res = await fetch(`https://api.spotify.com/v1${endpoint}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (res.status === 401) { logout(); return null; }
+    if (!res.ok) throw new Error(`Spotify API error: ${res.status}`);
+    return res.json();
+  }
+
+  async function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    await loadUser();
+    await loadPlaylists();
+  }
+
+  async function loadUser() {
+    try {
+      const user = await spotifyFetch('/me');
+      if (!user) return;
+      userId = user.id;
+      const name = user.display_name || user.id;
+      document.getElementById('user-name').textContent = name;
+      document.getElementById('user-initials').textContent = name.charAt(0).toUpperCase();
+    } catch(e) { console.error(e); }
+  }
+
+  async function loadPlaylists() {
+    try {
+      const data = await spotifyFetch('/me/playlists?limit=50');
+      if (!data) return;
+      const select = document.getElementById('playlist-select');
+      select.innerHTML = '<option value="">— Choose a playlist —</option>';
+      data.items.forEach(pl => {
+        const opt = document.createElement('option');
+        opt.value = pl.id;
+        opt.textContent = `${pl.name} (${pl.tracks.total})`;
+        select.appendChild(opt);
+      });
+    } catch(e) {
+      console.error(e);
+      showToast('Could not load playlists.');
+    }
+  }
+
+  async function loadPlaylistTracks() {
+    const playlistId = document.getElementById('playlist-select').value;
+    if (!playlistId) return;
+
+    document.getElementById('track-container').innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading tracks & BPM data...</p>
+        <p style="font-size:12px; margin-top:8px; color:var(--text-muted)">This may take a moment for large playlists</p>
+      </div>`;
+    document.getElementById('stats-bar').style.display = 'none';
+    document.getElementById('tracks-header').style.display = 'none';
+
+    try {
+      // Get all tracks
+      let tracks = [];
+      let url = `/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists,album(images)))`;
+      while (url) {
+        const data = await spotifyFetch(url);
+        if (!data) break;
+        tracks = tracks.concat(data.items.filter(i => i.track && i.track.id));
+        url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+      }
+
+      // Get audio features in batches of 100
+      const ids = tracks.map(t => t.track.id);
+      let features = [];
+      for (let i = 0; i < ids.length; i += 100) {
+        const batch = ids.slice(i, i + 100).join(',');
+        const data = await spotifyFetch(`/audio-features?ids=${batch}`);
+        if (data && data.audio_features) features = features.concat(data.audio_features);
+      }
+
+      // Merge
+      allTracks = tracks.map((t, i) => ({
+        id: t.track.id,
+        name: t.track.name,
+        artist: t.track.artists.map(a => a.name).join(', '),
+        image: t.track.album.images?.[2]?.url || t.track.album.images?.[0]?.url || '',
+        bpm: features[i] ? Math.round(features[i].tempo) : null
+      })).filter(t => t.bpm !== null);
+
+      filterTracks();
+
+    } catch(e) {
+      console.error(e);
+      document.getElementById('track-container').innerHTML = `
+        <div class="empty-state">
+          <div class="big-icon">⚠️</div>
+          <p>Could not load tracks. The audio features API<br>may require a different app permission.<br><br>
+          <span style="font-size:12px">Make sure your Spotify app has Web API enabled in the developer dashboard.</span></p>
+        </div>`;
+    }
+  }
+
+  function filterTracks() {
+    const minBpm = parseInt(document.getElementById('bpm-min').value) || 0;
+    const maxBpm = parseInt(document.getElementById('bpm-max').value) || 9999;
+
+    filteredTracks = allTracks.filter(t => t.bpm >= minBpm && t.bpm <= maxBpm);
+    renderTracks();
+    updateStats();
+  }
+
+  function setFilter(min, max, label) {
+    document.getElementById('bpm-min').value = min || '';
+    document.getElementById('bpm-max').value = max === 300 ? '' : max;
+
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+
+    filterTracks();
+  }
+
+  function getBpmClass(bpm) {
+    if (bpm < 100) return ['bpm-slow', 'Slow'];
+    if (bpm < 160) return ['bpm-med', 'Medium'];
+    if (bpm < 200) return ['bpm-fast', 'Fast'];
+    return ['bpm-very-fast', 'Very Fast'];
+  }
+
+  function renderTracks() {
+    const container = document.getElementById('track-container');
+    document.getElementById('tracks-header').style.display = 'flex';
+    document.getElementById('tracks-title').textContent = `${filteredTracks.length} Track${filteredTracks.length !== 1 ? 's' : ''}`;
+
+    const exportBtn = document.getElementById('export-btn');
+    exportBtn.disabled = filteredTracks.length === 0;
+
+    if (filteredTracks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="big-icon">🔍</div>
+          <p>No tracks found in this BPM range.<br>Try adjusting your filter.</p>
+        </div>`;
+      return;
+    }
+
+    // Sort by BPM
+    const sorted = [...filteredTracks].sort((a, b) => a.bpm - b.bpm);
+
+    container.innerHTML = `<div class="track-list">${sorted.map(t => {
+      const [cls, label] = getBpmClass(t.bpm);
+      return `<div class="track-item">
+        <div class="track-album">${t.image ? `<img src="${t.image}" alt="">` : ''}</div>
+        <div class="track-info">
+          <div class="track-name">${escHtml(t.name)}</div>
+          <div class="track-artist">${escHtml(t.artist)}</div>
+          <span class="bpm-badge ${cls}">${label}</span>
+        </div>
+        <div>
+          <div class="track-bpm">${t.bpm}</div>
+          <div class="track-bpm-label">BPM</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function updateStats() {
+    const statsBar = document.getElementById('stats-bar');
+    if (filteredTracks.length === 0) { statsBar.style.display = 'none'; return; }
+    statsBar.style.display = 'flex';
+
+    const bpms = filteredTracks.map(t => t.bpm);
+    document.getElementById('stat-total').textContent = filteredTracks.length;
+    document.getElementById('stat-avg').textContent = Math.round(bpms.reduce((a,b) => a+b, 0) / bpms.length);
+    document.getElementById('stat-min').textContent = Math.min(...bpms);
+    document.getElementById('stat-max').textContent = Math.max(...bpms);
+  }
+
+  // ---- EXPORT ----
+
+  function openExportModal() {
+    const pl = document.getElementById('playlist-select');
+    const plName = pl.options[pl.selectedIndex]?.text.replace(/\s*\(\d+\)$/, '') || '';
+    const min = document.getElementById('bpm-min').value;
+    const max = document.getElementById('bpm-max').value;
+    const bpmSuffix = (min || max) ? ` ${min||'0'}-${max||'∞'} BPM` : '';
+    document.getElementById('new-playlist-name').value = `${plName}${bpmSuffix}`.trim();
+    document.getElementById('export-modal').classList.add('open');
+  }
+
+  function closeExportModal() {
+    document.getElementById('export-modal').classList.remove('open');
+  }
+
+  async function exportPlaylist() {
+    const name = document.getElementById('new-playlist-name').value.trim();
+    if (!name) { showToast('Please enter a playlist name.'); return; }
+
+    try {
+      // Create playlist
+      const res = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description: `Created with Meraki Music BPM Organizer`, public: false })
+      });
+      const pl = await res.json();
+
+      // Add tracks in batches of 100
+      const uris = filteredTracks.map(t => `spotify:track:${t.id}`);
+      for (let i = 0; i < uris.length; i += 100) {
+        await fetch(`https://api.spotify.com/v1/playlists/${pl.id}/tracks`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uris: uris.slice(i, i + 100) })
+        });
+      }
+
+      closeExportModal();
+      showToast(`✓ "${name}" saved to your Spotify!`);
+      await loadPlaylists();
+
+    } catch(e) {
+      console.error(e);
+      showToast('Could not create playlist. Try again.');
+    }
+  }
+
+  // ---- UTILS ----
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ---- INIT ----
+  if (window.location.hash.includes('access_token')) {
+    handleCallback();
+  } else {
+    checkExistingToken();
+  }
+</script>
+</body>
+</html>
