@@ -668,7 +668,7 @@
 
 <script>
   const CLIENT_ID = 'a9608d98d4f24f6eb3773685e55a0979';
-  const REDIRECT_URI = 'https://michelleasia.github.io/meraki-music/';
+  const REDIRECT_URI = 'https://michelleasia.github.io/meraki-music/meraki-music-1.html';
   const SCOPES = 'user-read-private playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private';
 
   let accessToken = null;
@@ -677,26 +677,43 @@
   let userId = null;
   let activeChip = null;
 
-  // ---- AUTH ----
+  // ---- PKCE AUTH ----
 
-  function loginWithSpotify() {
-    const state = Math.random().toString(36).substring(2);
+  function generateRandomString(length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(x => chars[x % chars.length]).join('');
+  }
+
+  async function generateCodeChallenge(verifier) {
+    const data = new TextEncoder().encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  async function loginWithSpotify() {
+    const verifier = generateRandomString(64);
+    const challenge = await generateCodeChallenge(verifier);
+    const state = generateRandomString(16);
+    sessionStorage.setItem('spotify_verifier', verifier);
     sessionStorage.setItem('spotify_state', state);
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: CLIENT_ID,
       scope: SCOPES,
       redirect_uri: REDIRECT_URI,
-      state
+      state,
+      code_challenge_method: 'S256',
+      code_challenge: challenge
     });
     window.location.href = `https://accounts.spotify.com/authorize?${params}`;
   }
 
-  function handleCallback() {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const token = params.get('access_token');
-    const state = params.get('state');
+  async function handleCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
     const error = params.get('error');
 
     if (error) {
@@ -704,12 +721,33 @@
       return;
     }
 
-    if (token) {
-      const savedState = sessionStorage.getItem('spotify_state');
-      accessToken = token;
-      sessionStorage.setItem('spotify_token', token);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      showApp();
+    if (code) {
+      const verifier = sessionStorage.getItem('spotify_verifier');
+      try {
+        const res = await fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: REDIRECT_URI,
+            client_id: CLIENT_ID,
+            code_verifier: verifier
+          })
+        });
+        const data = await res.json();
+        if (data.access_token) {
+          accessToken = data.access_token;
+          sessionStorage.setItem('spotify_token', accessToken);
+          if (data.refresh_token) sessionStorage.setItem('spotify_refresh', data.refresh_token);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          showApp();
+        } else {
+          showLoginError('Could not get access token. Please try again.');
+        }
+      } catch(e) {
+        showLoginError('Login failed. Please try again.');
+      }
     }
   }
 
@@ -976,7 +1014,7 @@
   }
 
   // ---- INIT ----
-  if (window.location.hash.includes('access_token')) {
+  if (window.location.search.includes('code=')) {
     handleCallback();
   } else {
     checkExistingToken();
