@@ -668,7 +668,7 @@
 
 <script>
   const CLIENT_ID = 'a9608d98d4f24f6eb3773685e55a0979';
-  const REDIRECT_URI = 'https://claude.site/artifacts';
+  const REDIRECT_URI = 'https://michelleasia.github.io/meraki-music/';
   const SCOPES = 'user-read-private playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private';
 
   let accessToken = null;
@@ -683,7 +683,7 @@
     const state = Math.random().toString(36).substring(2);
     sessionStorage.setItem('spotify_state', state);
     const params = new URLSearchParams({
-      response_type: 'token',
+      response_type: 'code',
       client_id: CLIENT_ID,
       scope: SCOPES,
       redirect_uri: REDIRECT_URI,
