@@ -811,8 +811,8 @@
       select.innerHTML = '<option value="">— Choose a playlist —</option>';
       data.items.forEach(pl => {
         if (!pl) return;
-        opt.value = pl.id;
-        const count = pl.tracks ? pl.tracks.total : '?';
+  const opt = document.createElement('option');      opt.value = pl.id;
+        const count = pl.tracks ? pl.tracks.total : 0;
         opt.textContent = `${pl.name} (${count})`;
         select.appendChild(opt);
       });
