@@ -810,9 +810,10 @@
       const select = document.getElementById('playlist-select');
       select.innerHTML = '<option value="">— Choose a playlist —</option>';
       data.items.forEach(pl => {
-        const opt = document.createElement('option');
+        if (!pl) return;
         opt.value = pl.id;
-        opt.textContent = `${pl.name} (${pl.tracks.total})`;
+        const count = pl.tracks ? pl.tracks.total : '?';
+        opt.textContent = `${pl.name} (${count})`;
         select.appendChild(opt);
       });
     } catch(e) {
